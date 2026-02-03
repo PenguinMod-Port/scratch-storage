@@ -1,11 +1,12 @@
-const Asset = require('./Asset');
-const Helper = require('./Helper');
-const ProxyTool = require('./ProxyTool');
+const Asset = require("./Asset");
+const Helper = require("./Helper");
+const ProxyTool = require("./ProxyTool");
+const ProjectFetcher = require("./ProjectFetcher");
 
-const ensureRequestConfig = reqConfig => {
-    if (typeof reqConfig === 'string') {
+const ensureRequestConfig = (reqConfig) => {
+    if (typeof reqConfig === "string") {
         return {
-            url: reqConfig
+            url: reqConfig,
         };
     }
     return reqConfig;
@@ -19,7 +20,7 @@ const ensureRequestConfig = reqConfig => {
  */
 
 class WebHelper extends Helper {
-    constructor (parent) {
+    constructor(parent) {
         super(parent);
 
         /**
@@ -45,7 +46,7 @@ class WebHelper extends Helper {
          * to initialize before they can load files.
          * @type {ProxyTool}
          */
-        this.projectTool = new ProxyTool(ProxyTool.TOOL_FILTER.READY);
+        this.projectTool = new ProjectFetcher();
     }
 
     /**
@@ -54,7 +55,7 @@ class WebHelper extends Helper {
      * @param {Array.<AssetType>} types - The types of asset provided by this source.
      * @param {UrlFunction} urlFunction - A function which computes a URL from an Asset.
      */
-    addSource (types, urlFunction) {
+    addSource(types, urlFunction) {
         this.addStore(types, urlFunction);
     }
 
@@ -65,12 +66,12 @@ class WebHelper extends Helper {
      * @param {UrlFunction} createFunction - A function which computes a POST URL for an Asset
      * @param {UrlFunction} updateFunction - A function which computes a PUT URL for an Asset
      */
-    addStore (types, getFunction, createFunction, updateFunction) {
+    addStore(types, getFunction, createFunction, updateFunction) {
         this.stores.push({
-            types: types.map(assetType => assetType.name),
+            types: types.map((assetType) => assetType.name),
             get: getFunction,
             create: createFunction,
-            update: updateFunction
+            update: updateFunction,
         });
     }
 
@@ -81,23 +82,25 @@ class WebHelper extends Helper {
      * @param {DataFormat} dataFormat - The file format / file extension of the asset to fetch: PNG, JPG, etc.
      * @return {Promise.<Asset>} A promise for the contents of the asset.
      */
-    load (assetType, assetId, dataFormat) {
+    load(assetType, assetId, dataFormat) {
+        console.log(assetId);
 
         /** @type {Array.<{url:string, result:*}>} List of URLs attempted & errors encountered. */
         const errors = [];
-        const stores = this.stores.slice()
-            .filter(store => store.types.indexOf(assetType.name) >= 0);
-        
+        const stores = this.stores
+            .slice()
+            .filter((store) => store.types.indexOf(assetType.name) >= 0);
+
         // New empty asset but it doesn't have data yet
         const asset = new Asset(assetType, assetId, dataFormat);
 
         let tool = this.assetTool;
-        if (assetType.name === 'Project') {
+        if (assetType.name === "Project") {
             tool = this.projectTool;
         }
 
         let storeIndex = 0;
-        const tryNextSource = err => {
+        const tryNextSource = (err) => {
             if (err) {
                 errors.push(err);
             }
@@ -112,8 +115,9 @@ class WebHelper extends Helper {
                     return tryNextSource();
                 }
 
-                return tool.get(reqConfig)
-                    .then(body => {
+                return tool
+                    .get(reqConfig)
+                    .then((body) => {
                         if (body) {
                             asset.setData(body, dataFormat);
                             return asset;
@@ -140,52 +144,58 @@ class WebHelper extends Helper {
      * @param {?string} assetId - The ID of the asset to fetch: a project ID, MD5, etc.
      * @return {Promise.<object>} A promise for the response from the create or update request
      */
-    store (assetType, dataFormat, data, assetId) {
+    store(assetType, dataFormat, data, assetId) {
         const asset = new Asset(assetType, assetId, dataFormat);
         // If we have an asset id, we should update, otherwise create to get an id
-        const create = assetId === '' || assetId === null || typeof assetId === 'undefined';
+        const create =
+            assetId === "" ||
+            assetId === null ||
+            typeof assetId === "undefined";
 
         // Use the first store with the appropriate asset type and url function
-        const store = this.stores.filter(s =>
-            // Only use stores for the incoming asset type
-            s.types.indexOf(assetType.name) !== -1 && (
+        const store = this.stores.filter(
+            (s) =>
+                // Only use stores for the incoming asset type
+                s.types.indexOf(assetType.name) !== -1 &&
                 // Only use stores that have a create function if this is a create request
                 // or an update function if this is an update request
-                (create && s.create) || s.update
-            )
+                ((create && s.create) || s.update),
         )[0];
 
-        const method = create ? 'post' : 'put';
+        const method = create ? "post" : "put";
 
-        if (!store) return Promise.reject(new Error('No appropriate stores'));
+        if (!store) return Promise.reject(new Error("No appropriate stores"));
 
         let tool = this.assetTool;
-        if (assetType.name === 'Project') {
+        if (assetType.name === "Project") {
             tool = this.projectTool;
         }
 
         const reqConfig = ensureRequestConfig(
-            create ? store.create(asset) : store.update(asset)
+            create ? store.create(asset) : store.update(asset),
         );
-        const reqBodyConfig = Object.assign({body: data, method}, reqConfig);
-        return tool.send(reqBodyConfig)
-            .then(body => {
-                // xhr makes it difficult to both send FormData and
-                // automatically parse a JSON response. So try to parse
-                // everything as JSON.
-                if (typeof body === 'string') {
-                    try {
-                        body = JSON.parse(body);
-                    } catch (parseError) {
-                        // If it's not parseable, then we can't add the id even
-                        // if we want to, so stop here
-                        return body;
-                    }
+        const reqBodyConfig = Object.assign({ body: data, method }, reqConfig);
+        return tool.send(reqBodyConfig).then((body) => {
+            // xhr makes it difficult to both send FormData and
+            // automatically parse a JSON response. So try to parse
+            // everything as JSON.
+            if (typeof body === "string") {
+                try {
+                    throw new Error("fuh nah");
+                    body = JSON.parse(body);
+                } catch (parseError) {
+                    // If it's not parseable, then we can't add the id even
+                    // if we want to, so stop here
+                    return body;
                 }
-                return Object.assign({
-                    id: body['content-name'] || assetId
-                }, body);
-            });
+            }
+            return Object.assign(
+                {
+                    id: body["content-name"] || assetId,
+                },
+                body,
+            );
+        });
     }
 }
 
