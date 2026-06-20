@@ -1,9 +1,9 @@
 name: Publish to npm
 
 on:
-  push:
-    tags:
-      - 'v*'
+#  push:
+#    tags:
+#      - 'v*'
 
 permissions:
   id-token: write
