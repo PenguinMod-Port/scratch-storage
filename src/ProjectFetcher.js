@@ -1,6 +1,7 @@
 const { scratchFetch } = require("./scratchFetch");
 const saferFetch = require("./safer-fetch");
 const isNullResponse = require("./isNullResponse");
+const pmp_protobuf = require("pmp-protobuf");
 
 /**
  * @typedef {Request & {withCredentials: boolean}} ScratchSendRequest
@@ -9,10 +10,10 @@ const isNullResponse = require("./isNullResponse");
 /**
  * Get and send assets with the fetch standard web api.
  */
-class FetchTool {
+class ProjectFetcher {
     /**
      * Is get supported?
-     * Always true for `FetchTool` because `scratchFetch` ponyfills `fetch` if necessary.
+     * Always true for `ProjectFetcher` because `scratchFetch` ponyfills `fetch` if necessary.
      * @returns {boolean} Is get supported?
      */
     get isGetSupported() {
@@ -25,10 +26,20 @@ class FetchTool {
      * @returns {Promise.<Uint8Array?>} Resolve to Buffer of data from server.
      */
     get({ url, ...options }) {
+        console.log(url);
         return saferFetch(url, Object.assign({ method: "GET" }, options)).then(
             (result) => {
-                if (result.ok)
-                    return result.arrayBuffer().then((b) => new Uint8Array(b));
+                if (result.ok) {
+                    return result
+                        .arrayBuffer()
+                        .then((b) =>
+                            new TextEncoder().encode(
+                                JSON.stringify(
+                                    pmp_protobuf.protobufToJson(Buffer.from(b)),
+                                ),
+                            ),
+                        );
+                }
                 if (isNullResponse(result)) return null;
                 return Promise.reject(result.status); // TODO: we should throw a proper error
             },
@@ -37,7 +48,7 @@ class FetchTool {
 
     /**
      * Is sending supported?
-     * Always false for `FetchTool` because we don't send in the editor.
+     * Always false - we don't send in the editor in PM
      * @returns {boolean} Is sending supported?
      */
     get isSendSupported() {
@@ -54,4 +65,4 @@ class FetchTool {
     }
 }
 
-module.exports = FetchTool;
+module.exports = ProjectFetcher;

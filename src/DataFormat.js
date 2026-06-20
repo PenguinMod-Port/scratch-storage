@@ -6,6 +6,8 @@ const DataFormat = {
     JPG: 'jpg',
     JSON: 'json',
     MP3: 'mp3',
+    OGG: 'ogg',
+    FLAC: 'flac',
     PNG: 'png',
     SB2: 'sb2',
     SB3: 'sb3',
@@ -14,7 +16,8 @@ const DataFormat = {
     TTF: 'ttf',
     OTF: 'otf',
     WOFF: 'woff',
-    WOFF2: 'woff2'
+    WOFF2: 'woff2',
+    TXT: 'txt'
 };
 
 module.exports = DataFormat;
