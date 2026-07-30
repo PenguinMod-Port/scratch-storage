@@ -1,5 +1,5 @@
 {
-  "name": "@turbowarp/scratch-storage",
+  "name": "scratch-storage",
   "version": "2.0.0",
   "description": "Load and store project and asset files for Scratch 3.0",
   "license": "BSD-3-Clause",
